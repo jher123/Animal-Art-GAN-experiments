@@ -153,12 +153,12 @@ def main():
     parser.add_argument('--ks', default=4, type=int, help='kernel size')
     parser.add_argument('--ndf', default=64, type=int, help='determines the depth of the feature maps carried through the discriminator/critic')
     parser.add_argument('--ngf', default=64, type=int, help='determines the depth of the feature maps carried through the generator')
-    parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
+    parser.add_argument('--lr', default=0.0001, type=float, help='learning rate')
     parser.add_argument('--version_name', default='', type=str, help='what to name the subfolder with info from this run as')
-    parser.add_argument('--img_folder_name', default='', type=str)
+    parser.add_argument('--img_folder_name', type=str, required=True)
     parser.add_argument('--debug', default=True, help='whether to save debug info whilst training')
     parser.add_argument('--resume', default=False, help='whether to resume training from checkpoint')
-    parser.add_argument('--epoch_num', type=int, help='Number of epoch from which to restart training, must be a multiple of 500.')
+    parser.add_argument('--epoch_num', required=True, type=int, help='Number of epoch from which to restart training, must be a multiple of 500.')
 
     opt = parser.parse_args()
     print('Parsed arguments: \n {}'.format(opt))
@@ -175,7 +175,8 @@ def main():
     version = opt.version_name
     img_folder_name = opt.img_folder_name
 
-    PATH = os.path.dirname(os.path.realpath(__file__))
+    PATH = os.path.abspath(__file__ + "/../../")
+    PATH = os.path.join(PATH, 'data')
     IMG_PATH = PATH/img_folder_name
     CSV_PATH = PATH/'files.csv' # to keep labels for images # TODO
     TMP_PATH = os.path.join(os.path.join(PATH, 'checkpoints'), version)
