@@ -8,8 +8,8 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import torch.backends.cudnn as cudnn
 
-# from fastai.conv_learner import *
-# from fastai.dataset import *
+from fastai.conv_learner import *
+from fastai.dataset import *
 
 from model import *
 from utils import *
