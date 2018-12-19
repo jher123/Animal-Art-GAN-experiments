@@ -1,3 +1,6 @@
+# Plotting
+
+# from fast.ai notebook
 def gallery(x, nc=3):
     n,h,w,c = x.shape
     nr = n//nc
@@ -6,6 +9,14 @@ def gallery(x, nc=3):
               .swapaxes(1,2)
               .reshape(h*nr, w*nc, c))
 
+
+def plot_debug_info(_debug_info_dict):
+    plt.figure(figsize=(15, 15))
+    fig, axs = plt.subplots(2, 2)
+    pd.Series([item[0] for item in _debug_info_dict['lossG']]).plot(ax=axs[0, 0], title='lossG')
+    pd.Series([item[0] for item in _debug_info_dict['fake_res']]).plot(ax=axs[0, 1], title='D(G(z))')
+    pd.Series([item[0] for item in _debug_info_dict['lossD']]).plot(ax=axs[1, 0], title='lossD' )
+    pd.Series([item[0] for item in _debug_info_dict['real_res']]).plot(ax=axs[1, 1], title='D(x)')
 
 # custom weights initialization called on netG and netD
 def weights_init(m):

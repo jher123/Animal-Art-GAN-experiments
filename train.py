@@ -15,18 +15,63 @@ from model import *
 from utils import *
 
 
-def train(md, resume_training=False, debug=True):
+def train(
+    netG,
+    netD,
+    optimiserG,
+    optimiserD,
+    num_epochs,
+    batch_size,
+    nz,
+    gen_img_path,
+    checkpoint_path,
+    gen_img_freq=5,
+    checkpoint_freq=500,
+    resume_from_checkpoint_path=None,
+    resume_training=False,
+    debug=True,
+):  # TODO PASS A DATALOADER
+    """ A method to train a Wasserstein GAN given dataset loader object and options.
 
-    # DEFINE THE MODELS
-    netG = Generator(IM_SIZE, KS, NZ, NGF).cuda()
-    netD = Discriminator(IM_SIZE, KS, NDF).cuda()
+    Parameters
+    ----------
+    md An object loading data. Currently fast.ai model data data loader
+    netG:
+    netD:
+    optimiserD:
+    optimiserG:
+    nz:
+    num_epochs: int, the total number of epochs
+    gen_img_path: str, path to the folder where generated images will be saved
+    checkpoint_path: str, path to where model checkpoints will be saved
+    gen_img_freq: int, every how many epochs to save image samples, default 5
+    checkpoint_freq: 5, every how many epochs to save model checkpoints, default 500
+    resume_from_checkpoint_path: str, path to the checkpoint file from which to resume training
+    resume_training: Boolean, whether to resume training from checkpoint. Default False.
+                    If True, training will be resume from the checkpoint specified by
+                    resume_from_checkpoint_path. This file will contain the number of
+                    the epoch when it was saved.
+    debug: Boolean, whether to save a dict with debug info:
+            lossD, lossG, D(fake batch) and D(real batch). Default True.
 
-    # DEFINE THE OPTIMISERS
-    optimiserD = optim.RMSprop(netD.parameters(), lr = LR)
-    optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
+
+    Returns
+    -------
+    netG: Trained Generator object
+    netD: Trained Discriminator object
+    debug_info: a dictionary with debug information as described above.
+            If debug was set to False, this will be an empty dictionary.
+    """
+
+    # lists to store logging information
+    debug_info = {}
+    debug_info['lossD'] = []
+    debug_info['lossG'] = []
+    debug_info['real_res'] = []
+    debug_info['fake_res'] = []
 
     if resume_training:
-        checkpoint = torch.load(CHECKPOINT_PATH)
+        checkpoint = torch.load(resume_from_checkpoint_path)
         netG.load_state_dict(checkpoint['netG_state_dict'])
         netD.load_state_dict(checkpoint['netD_state_dict'])
         optimiserG.load_state_dict(checkpoint['optimiserG_state_dict'])
@@ -34,26 +79,18 @@ def train(md, resume_training=False, debug=True):
         last_epoch = checkpoint['epoch']
         lossD = checkpoint['lossD']
         lossG = checkpoint['lossG']
+        debug_info = checkpoint['debug_info']
         print('Resuming training from epoch {}, with lossD: {} and lossG: {}'.format(last_epoch, lossD, lossG))
     else:
-        # Apply the weights_init function to randomly initialize all weights with mean=0 and stdev=0.2.
+        # Apply the weights_init function to randomly initialise all weights with mean=0 and stdev=0.2.
         last_epoch = 0
         netG.apply(weights_init)
         netD.apply(weights_init)
 
-    # lists to store logging information
-    debug_info = {}
-    if debug is True:
-        debug_info['lossD'] = []
-        debug_info['lossG'] = []
-        debug_info['real_res'] = []
-        debug_info['fake_res'] = []
-
     gen_iters = 0
-
-    for epoch in range(NUM_EPOCHS)[(last_epoch + 1):]:
-        print('Running epoch {}/{} \n'.format(epoch, NUM_EPOCHS))
-        # SET THE MODELS IN TRAINING MODE
+    for epoch in range(num_epochs + 1)[(last_epoch + 1):]:
+        print('Running epoch {}/{} \n'.format(epoch, num_epochs + 1))
+        # SET THE MODELS TO TRAINING MODE
         netD.train()
         netG.train()
         image_batch = next(iter(md.trn_dl))
@@ -78,7 +115,7 @@ def train(md, resume_training=False, debug=True):
                 real = V(image_batch[0])
                 real_result = netD(real) # the avg output across batch of the D for all the real batch
                 # FAKE IMAGE BATCH
-                noise = V(torch.zeros(BATCH_SIZE, NZ, 1, 1).normal_(0, 1))
+                noise = V(torch.zeros(real.size[0], nz, 1, 1).normal_(0, 1)) # TODO
                 fake = netG(noise)
                 fake_result = netD(V(fake.data)) # the avg D output for all the fake batch
                 # ZERO THE GRADIENTS FOR D AND THEN CALCULATE LOSS + BACKPROP
@@ -93,7 +130,7 @@ def train(md, resume_training=False, debug=True):
             set_trainable(netG, True)
             # ZERO THE GRADIENTS FOR G AND THEN CALCULATE LOSS + BACKPROP + UPDATE STEP
             netG.zero_grad()
-            noise1 = V(torch.zeros(BATCH_SIZE, NZ, 1, 1).normal_(0, 1))
+            noise1 = V(torch.zeros(real.size[0], nz, 1, 1).normal_(0, 1)) # TODO
             # opt TODO: add Gaussian noise to every layer of generator: rain_noise = np.random.uniform(-1.0, 1.0, size=[batch_size, random_dim]).astype(np.float32)
             # COULD JUST USE THE FAKE FROM ABOVE LIKE IN THE OTHER IMPLEMENTATION
             lossG = netD(netG(noise1)).mean(0).view(1)
@@ -108,11 +145,11 @@ def train(md, resume_training=False, debug=True):
             debug_info['real_res'].append(to_np(real_result))
             debug_info['fake_res'].append(to_np(fake_result))
 
-        print(f'\n Loss_D (real - fake result) {to_np(lossD)}; Loss_G what D thinks of Gen im? {to_np(lossG)}; '
+        print(f'\n Loss_D (real - fake result) {to_np(lossD)}; Loss_G {to_np(lossG)}; '
               f'D_real {to_np(real_result)}; Loss_D_fake {to_np(fake_result)} \n')
 
-        # SAVE CHECKPOINTS EVERY 500 EPOCHS
-        if epoch%500 == 0:
+        # SAVE CHECKPOINTS EVERY CHECKPOINT_FREQ EPOCHS
+        if epoch%checkpoint_freq == 0:
             print('Saving checkpoint at epoch {}'.format(epoch))
             torch.save({
                 'epoch': epoch,
@@ -121,20 +158,21 @@ def train(md, resume_training=False, debug=True):
                 'optimiserG_state_dict': optimiserG.state_dict(),
                 'optimiserD_state_dict': optimiserD.state_dict(),
                 'lossD': lossD,
-                'lossG': lossG},
-                f'{TMP_PATH}/epoch_{str(epoch)}.pth.tar')
-        # SAVE IMAGES EVERY 5 EPOCHS
-        if epoch%5 == 0:
+                'lossG': lossG,
+                'debug_info': debug_info
+            },
+                f'{checkpoint_path}/epoch_{str(epoch)}.pth.tar')
+        # SAVE IMAGES EVERY IMG_FREQ EPOCHS
+        if epoch%gen_img_freq == 0:
             netD.eval()
             netG.eval()
-            fixed_noise = create_noise(BATCH_SIZE)
+            fixed_noise = create_noise(64)
             fake = netG(fixed_noise).data.cpu()
             vutils.save_image(
-                fake,'%s/fake_image_epoch_%03d.jpg' % (GEN_PATH, epoch), normalize=True
+                fake,'%s/fake_image_epoch_%03d.jpg' % (gen_img_path, epoch), normalize=True
             )
 
     return netG, netD, debug_info
-
 
 def main():
     # set seed
@@ -146,7 +184,7 @@ def main():
     torch.backends.cudnn.benchmark=True
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bs', default=64, type=int, help='batch size')
+    parser.add_argument("--bs", default=64, type=int, help='batch size')
     parser.add_argument('--im_size', default=64, type=int, help='image size')
     parser.add_argument('--num_epochs', default=2000, type=int, help='the number of training epochs')
     parser.add_argument('--nz', default=100, type=int, help='the size of the random input vector')
@@ -154,8 +192,11 @@ def main():
     parser.add_argument('--ndf', default=64, type=int, help='determines the depth of the feature maps carried through the discriminator/critic')
     parser.add_argument('--ngf', default=64, type=int, help='determines the depth of the feature maps carried through the generator')
     parser.add_argument('--lr', default=0.0001, type=float, help='learning rate')
-    parser.add_argument('--version_name', default='', type=str, help='what to name the subfolder with info from this run as')
-    parser.add_argument('--img_folder_name', type=str, required=True)
+    parser.add_argument('--version_name', required=True, help='what to name the subfolder with info from this run as')
+    parser.add_argument('--img_folder_name', type=str, required=True, help='path to folder where to save generated images')
+    parser.add_argument('--gen_img_freq', default=5, help='every how many epochs to save generated images')
+    parser.add_argument('--checkpoint_freq', default=500, help='every how many epochs to save checkpoints')
+    parser.add_argument('--resume_from_checkpoint_path', help='checkpoint file from which to resume training')
     parser.add_argument('--debug', default=True, help='whether to save debug info whilst training')
     parser.add_argument('--resume', default=False, help='whether to resume training from checkpoint')
     parser.add_argument('--epoch_num', required=True, type=int, help='Number of epoch from which to restart training, must be a multiple of 500.')
@@ -197,12 +238,36 @@ def main():
                                   skip_header=False, continuous=True)
     md = md.resize(BATCH_SIZE)
 
+    # DEFINE THE MODELS
+    netG = Generator(IM_SIZE, KS, NZ, NGF).cuda()
+    netD = Discriminator(IM_SIZE, KS, NDF).cuda()
+
+    # DEFINE THE OPTIMISERS
+    optimiserD = optim.RMSprop(netD.parameters(), lr = LR)
+    optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
+
     # TRAINING
-    # Resuming training from checkpoints
     if resume is True:
-        CHECKPOINT_PATH = f'{TMP_PATH}/epoch_{opt.epoch_num}.pth.tar'
-    # Training from scratch
-    train(md, resume_training=opt.resume, debug=opt.debug)
+        if opt.resume_from_checkpoint_path is None:
+            CHECKPOINT_PATH = f'{TMP_PATH}/epoch_{opt.epoch_num}.pth.tar'
+        else:
+            CHECKPOINT_PATH = opt.resume_from_checkpoint_path
+
+    train(
+        netG,
+        netD,
+        optimiserG,
+        optimiserD,
+        NZ,
+        num_epochs=NUM_EPOCHS,
+        gen_img_path=GEN_PATH,
+        checkpoint_path=TMP_PATH,
+        gen_img_freq=opt.gen_img_freq,
+        checkpoint_freq=opt.checkpoint_freq,
+        resume_from_checkpoint_path=CHECKPOINT_PATH
+        resume_training=opt.resume,
+        debug=opt.debug,
+
 
     print('Time elapsed: {}'.format(time.time() - start_time))
 
