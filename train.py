@@ -7,21 +7,19 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import torch.backends.cudnn as cudnn
-
-from fastai.conv_learner import *
-from fastai.dataset import *
+import torchvision.datasets as dset
 
 from model import *
 from utils import *
 
 
 def train(
+    dataloader,
     netG,
     netD,
     optimiserG,
     optimiserD,
     num_epochs,
-    batch_size,
     nz,
     gen_img_path,
     checkpoint_path,
@@ -30,17 +28,17 @@ def train(
     resume_from_checkpoint_path=None,
     resume_training=False,
     debug=True,
-):  # TODO PASS A DATALOADER
-    """ A method to train a Wasserstein GAN given dataset loader object and options.
+):
+    """ A method to train Wasserstein GAN given dataset loader object and options.
 
     Parameters
     ----------
-    md An object loading data. Currently fast.ai model data data loader
-    netG:
-    netD:
-    optimiserD:
-    optimiserG:
-    nz:
+    dataloader An object loading data.
+    netG: nn.Module object, Generator net
+    netD: nn.Module object, Discriminator net
+    optimiserD: object, Discriminator optimiser
+    optimiserG: object, Generator optimiser
+    nz: int, the length of the random numbers vector
     num_epochs: int, the total number of epochs
     gen_img_path: str, path to the folder where generated images will be saved
     checkpoint_path: str, path to where model checkpoints will be saved
@@ -93,10 +91,9 @@ def train(
         # SET THE MODELS TO TRAINING MODE
         netD.train()
         netG.train()
-        image_batch = next(iter(md.trn_dl))
-        # TODO: have image batch here
+        image_batch = next(iter(dataloader))
         i = 0
-        n = len(md.trn_dl) # LENGTH OF THE BATCH
+        n = len(image_batch) # LENGTH OF THE BATCH
         while i < n:
             # for every 1 iteration of G, have 5 or more later iters of D
             d_iters = 100 if (gen_iters % 500 == 0) else 5
@@ -115,7 +112,7 @@ def train(
                 real = V(image_batch[0])
                 real_result = netD(real) # the avg output across batch of the D for all the real batch
                 # FAKE IMAGE BATCH
-                noise = V(torch.zeros(real.size[0], nz, 1, 1).normal_(0, 1)) # TODO
+                noise = V(torch.zeros(real.size[0], nz, 1, 1).normal_(0, 1))
                 fake = netG(noise)
                 fake_result = netD(V(fake.data)) # the avg D output for all the fake batch
                 # ZERO THE GRADIENTS FOR D AND THEN CALCULATE LOSS + BACKPROP
@@ -132,7 +129,7 @@ def train(
             netG.zero_grad()
             noise1 = V(torch.zeros(real.size[0], nz, 1, 1).normal_(0, 1)) # TODO
             # opt TODO: add Gaussian noise to every layer of generator: rain_noise = np.random.uniform(-1.0, 1.0, size=[batch_size, random_dim]).astype(np.float32)
-            # COULD JUST USE THE FAKE FROM ABOVE LIKE IN THE OTHER IMPLEMENTATION
+            # USE THE FAKE FROM ABOVE?
             lossG = netD(netG(noise1)).mean(0).view(1)
             lossG.backward()
             # G OPTIMISER UPDATE STEP
@@ -218,25 +215,23 @@ def main():
 
     PATH = os.path.abspath(__file__ + "/../../")
     PATH = os.path.join(PATH, 'data')
-    IMG_PATH = PATH/img_folder_name
-    CSV_PATH = PATH/'files.csv' # to keep labels for images # TODO
     TMP_PATH = os.path.join(os.path.join(PATH, 'checkpoints'), version)
     os.makedirs(TMP_PATH, exist_ok=True)
     GEN_PATH = os.path.join(os.path.join(PATH, 'generated_imgs'), version)
     os.makedirs(GEN_PATH, exist_ok=True)
 
+
     # PREPARING THE DATA
-    # Generating a dummy csv file with data labels - from fast.ai lesson 12 notebook
-    files = PATH.glob(img_folder_name + '/*')
-    with CSV_PATH.open('w') as fo:
-         for f in files:
-            fo.write(f'{f.relative_to(IMG_PATH)},0.7\n')
-    test_csv = pd.read_csv(f'{CSV_PATH}')
-    test_csv.shape
-    # Model data object
-    md = ImageClassifierData.from_csv(PATH, img_folder_name, CSV_PATH, tfms=tfms, bs=BATCH_SIZE,
-                                  skip_header=False, continuous=True)
-    md = md.resize(BATCH_SIZE)
+    # dataset
+    tfms = transforms.Compose(
+        [transforms.Resize(IM_SIZE),
+        transforms.CenterCrop(IM_SIZE),
+        transforms.ToTensor(), # this swaps colour axis as numpy image is H x W x C and torch image is C x H x W, and does torch.from_numpy(image)
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+    )
+    dataset = dset.ImageFolder(root=PATH, transform=tfms)
+
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 
     # DEFINE THE MODELS
     netG = Generator(IM_SIZE, KS, NZ, NGF).cuda()
@@ -254,6 +249,7 @@ def main():
             CHECKPOINT_PATH = opt.resume_from_checkpoint_path
 
     train(
+        dataloader,
         netG,
         netD,
         optimiserG,
@@ -264,10 +260,10 @@ def main():
         checkpoint_path=TMP_PATH,
         gen_img_freq=opt.gen_img_freq,
         checkpoint_freq=opt.checkpoint_freq,
-        resume_from_checkpoint_path=CHECKPOINT_PATH
+        resume_from_checkpoint_path=CHECKPOINT_PATH,
         resume_training=opt.resume,
-        debug=opt.debug,
-
+        debug=opt.debug
+    )
 
     print('Time elapsed: {}'.format(time.time() - start_time))
 
