@@ -26,7 +26,6 @@ def train(
     checkpoint_path,
     gen_img_freq=5,
     checkpoint_freq=500,
-    resume_from_checkpoint_path=None,
     resume_training=False,
     debug=True,
     resume_from_checkpoint_path=None
@@ -264,7 +263,6 @@ def main():
         checkpoint_path=TMP_PATH,
         gen_img_freq=opt.gen_img_freq,
         checkpoint_freq=opt.checkpoint_freq,
-        resume_from_checkpoint_path=CHECKPOINT_PATH,
         resume_training=opt.resume,
         debug=opt.debug,
         resume_from_checkpoint_path=opt.resume_from_checkpoint_path
