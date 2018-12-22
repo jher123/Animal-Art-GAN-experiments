@@ -4,6 +4,7 @@ import random
 import argparse
 import torch
 import torch.optim as optim
+from torch.autograd import Variable as V
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import torch.backends.cudnn as cudnn
@@ -93,7 +94,7 @@ def train(
         netG.train()
         image_batch = next(iter(dataloader))
         i = 0
-        n = len(image_batch) # LENGTH OF THE BATCH
+        n = len(image_batch[0]) # LENGTH OF THE BATCH
         while i < n:
             # for every 1 iteration of G, have 5 or more later iters of D
             d_iters = 100 if (gen_iters % 500 == 0) else 5
@@ -110,9 +111,10 @@ def train(
                     p.data.clamp_(-0.01, 0.01)
                 # REAL IMAGE BATCH
                 real = V(image_batch[0])
+                real = real.cuda()
                 real_result = netD(real) # the avg output across batch of the D for all the real batch
                 # FAKE IMAGE BATCH
-                noise = V(torch.zeros(real.size[0], nz, 1, 1).normal_(0, 1))
+                noise = V(torch.zeros(real.size(0), nz, 1, 1).normal_(0, 1))
                 fake = netG(noise)
                 fake_result = netD(V(fake.data)) # the avg D output for all the fake batch
                 # ZERO THE GRADIENTS FOR D AND THEN CALCULATE LOSS + BACKPROP
@@ -127,7 +129,7 @@ def train(
             set_trainable(netG, True)
             # ZERO THE GRADIENTS FOR G AND THEN CALCULATE LOSS + BACKPROP + UPDATE STEP
             netG.zero_grad()
-            noise1 = V(torch.zeros(real.size[0], nz, 1, 1).normal_(0, 1)) # TODO
+            noise1 = V(torch.zeros(real.size(0), nz, 1, 1).normal_(0, 1)) # TODO
             # opt TODO: add Gaussian noise to every layer of generator: rain_noise = np.random.uniform(-1.0, 1.0, size=[batch_size, random_dim]).astype(np.float32)
             # USE THE FAKE FROM ABOVE?
             lossG = netD(netG(noise1)).mean(0).view(1)
@@ -136,14 +138,19 @@ def train(
             optimiserG.step()
             gen_iters += 1
 
-        if debug is True:
-            debug_info['lossD'].append(to_np(lossD))
-            debug_info['lossG'].append(to_np(lossG))
-            debug_info['real_res'].append(to_np(real_result))
-            debug_info['fake_res'].append(to_np(fake_result))
+        lossDnp = lossD.data.cpu().numpy()
+        lossGnp = lossG.data.cpu().numpy()
+        realnp = real_result.data.cpu().numpy()
+        fakenp = fake_result.data.cpu().numpy()
 
-        print(f'\n Loss_D (real - fake result) {to_np(lossD)}; Loss_G {to_np(lossG)}; '
-              f'D_real {to_np(real_result)}; Loss_D_fake {to_np(fake_result)} \n')
+        if debug is True:
+            debug_info['lossD'].append(lossDnp)
+            debug_info['lossG'].append(lossGnp)
+            debug_info['real_res'].append(realnp)
+            debug_info['fake_res'].append(fakenp)
+
+        print(f'\n Loss_D (real - fake result) {lossDnp}; Loss_G {lossGnp}; '
+              f'D_real {realnp}; Loss_D_fake {fakenp} \n')
 
         # SAVE CHECKPOINTS EVERY CHECKPOINT_FREQ EPOCHS
         if epoch%checkpoint_freq == 0:
@@ -179,6 +186,7 @@ def main():
 
     torch.cuda.set_device(0)
     torch.backends.cudnn.benchmark=True
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--bs", default=64, type=int, help='batch size')
@@ -214,6 +222,7 @@ def main():
     img_folder_name = opt.img_folder_name
 
     PATH = os.path.abspath(__file__ + "/../../")
+    INPUT_PATH = os.path.join(PATH, 'input_data')
     PATH = os.path.join(PATH, 'data')
     TMP_PATH = os.path.join(os.path.join(PATH, 'checkpoints'), version)
     os.makedirs(TMP_PATH, exist_ok=True)
@@ -229,7 +238,7 @@ def main():
         transforms.ToTensor(), # this swaps colour axis as numpy image is H x W x C and torch image is C x H x W, and does torch.from_numpy(image)
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
     )
-    dataset = dset.ImageFolder(root=PATH, transform=tfms)
+    dataset = dset.ImageFolder(root=INPUT_PATH, transform=tfms)
 
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
 
@@ -242,11 +251,11 @@ def main():
     optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
 
     # TRAINING
-    if resume is True:
+    if opt.resume is True:
         if opt.resume_from_checkpoint_path is None:
             CHECKPOINT_PATH = f'{TMP_PATH}/epoch_{opt.epoch_num}.pth.tar'
-        else:
-            CHECKPOINT_PATH = opt.resume_from_checkpoint_path
+    else:
+        CHECKPOINT_PATH = opt.resume_from_checkpoint_path
 
     train(
         dataloader,
@@ -254,8 +263,8 @@ def main():
         netD,
         optimiserG,
         optimiserD,
+        NUM_EPOCHS,
         NZ,
-        num_epochs=NUM_EPOCHS,
         gen_img_path=GEN_PATH,
         checkpoint_path=TMP_PATH,
         gen_img_freq=opt.gen_img_freq,
@@ -265,7 +274,7 @@ def main():
         debug=opt.debug
     )
 
-    print('Time elapsed: {}'.format(time.time() - start_time))
+    print('Time elapsed in min: {}'.format((time.time() - start_time)/60.)
 
 
 if __name__ == '__main__':
