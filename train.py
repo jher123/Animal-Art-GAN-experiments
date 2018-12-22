@@ -192,7 +192,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bs", default=64, type=int, help='batch size')
     parser.add_argument('--im_size', default=64, type=int, help='image size')
-    parser.add_argument('--num_epochs', default=2000, required=True type=int, help='the number of training epochs')
+    parser.add_argument('--num_epochs', default=2000, required=True, type=int, help='the number of training epochs')
     parser.add_argument('--nz', default=100, type=int, help='the size of the random input vector')
     parser.add_argument('--ks', default=4, type=int, help='kernel size')
     parser.add_argument('--ndf', default=64, type=int, help='determines the depth of the feature maps carried through the discriminator/critic')
