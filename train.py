@@ -29,6 +29,7 @@ def train(
     resume_from_checkpoint_path=None,
     resume_training=False,
     debug=True,
+    resume_from_checkpoint_path=None
 ):
     """ A method to train Wasserstein GAN given dataset loader object and options.
 
@@ -52,7 +53,7 @@ def train(
                     the epoch when it was saved.
     debug: Boolean, whether to save a dict with debug info:
             lossD, lossG, D(fake batch) and D(real batch). Default True.
-
+    resume_from_checkpoint_path
 
     Returns
     -------
@@ -191,7 +192,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bs", default=64, type=int, help='batch size')
     parser.add_argument('--im_size', default=64, type=int, help='image size')
-    parser.add_argument('--num_epochs', default=2000, type=int, help='the number of training epochs')
+    parser.add_argument('--num_epochs', default=2000, required=True type=int, help='the number of training epochs')
     parser.add_argument('--nz', default=100, type=int, help='the size of the random input vector')
     parser.add_argument('--ks', default=4, type=int, help='kernel size')
     parser.add_argument('--ndf', default=64, type=int, help='determines the depth of the feature maps carried through the discriminator/critic')
@@ -204,7 +205,7 @@ def main():
     parser.add_argument('--resume_from_checkpoint_path', help='checkpoint file from which to resume training')
     parser.add_argument('--debug', default=True, help='whether to save debug info whilst training')
     parser.add_argument('--resume', default=False, help='whether to resume training from checkpoint')
-    parser.add_argument('--epoch_num', required=True, type=int, help='Number of epoch from which to restart training, must be a multiple of 500.')
+    parser.add_argument('--epoch_num', type=int, help='Number of epoch from which to restart training, must be a multiple of 500.')
 
     opt = parser.parse_args()
     print('Parsed arguments: \n {}'.format(opt))
@@ -251,12 +252,6 @@ def main():
     optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
 
     # TRAINING
-    if opt.resume is True:
-        if opt.resume_from_checkpoint_path is None:
-            CHECKPOINT_PATH = f'{TMP_PATH}/epoch_{opt.epoch_num}.pth.tar'
-    else:
-        CHECKPOINT_PATH = opt.resume_from_checkpoint_path
-
     train(
         dataloader,
         netG,
@@ -271,7 +266,8 @@ def main():
         checkpoint_freq=opt.checkpoint_freq,
         resume_from_checkpoint_path=CHECKPOINT_PATH,
         resume_training=opt.resume,
-        debug=opt.debug
+        debug=opt.debug,
+        resume_from_checkpoint_path=opt.resume_from_checkpoint_path
     )
 
     print('Time elapsed in min: {}'.format((time.time() - start_time)/60.))
