@@ -1,13 +1,9 @@
 # The definition of the basic WCGAN which generates 64x64 or 128x128 images
-
+import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-
-
-def create_noise(num_zs):
-    # good practice: sample from Gaussian and not uniform distribution
-    return V(torch.zeros(num_zs, NZ, 1, 1).normal_(0, 1))
+from torch.autograd import Variable as V
 
 
 class DeconvBlock(nn.Module):
