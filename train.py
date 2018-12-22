@@ -274,7 +274,7 @@ def main():
         debug=opt.debug
     )
 
-    print('Time elapsed in min: {}'.format((time.time() - start_time)/60.)
+    print('Time elapsed in min: {}'.format((time.time() - start_time)/60.))
 
 
 if __name__ == '__main__':
