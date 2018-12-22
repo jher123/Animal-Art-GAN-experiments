@@ -35,5 +35,5 @@ def weights_init(m):
 
 def set_trainable(model, flag):
     model.trainable = flag
-    for p in model.paramaters():
+    for p in model.parameters():
         p.requires_grad = flag
