@@ -250,6 +250,11 @@ def main():
     optimiserD = optim.RMSprop(netD.parameters(), lr = LR)
     optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
 
+    if opt.resume_from_checkpoint_path is None:
+        checkpoint = f'{checkpoint_path}/epoch_{str(epoch_num)}.pth.tar'
+    else:
+        checkpoint = opt.resume_from_checkpoint_path
+
     # TRAINING
     train(
         dataloader,
@@ -265,7 +270,7 @@ def main():
         checkpoint_freq=opt.checkpoint_freq,
         resume_training=opt.resume,
         debug=opt.debug,
-        resume_from_checkpoint_path=opt.resume_from_checkpoint_path
+        resume_from_checkpoint_path=checkpoint
     )
 
     print('Time elapsed in min: {}'.format((time.time() - start_time)/60.))
