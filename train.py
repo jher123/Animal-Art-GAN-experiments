@@ -70,7 +70,7 @@ def train(
     debug_info['fake_res'] = []
 
     if resume_path is not None:
-        checkpoint = torch.load(resume_from_checkpoint_path)
+        checkpoint = torch.load(resume_path)
         netG.load_state_dict(checkpoint['netG_state_dict'])
         netD.load_state_dict(checkpoint['netD_state_dict'])
         optimiserG.load_state_dict(checkpoint['optimiserG_state_dict'])
