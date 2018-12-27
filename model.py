@@ -3,6 +3,7 @@
 import torch.nn as nn
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
+from torch.autograd import Variable as V
 
 
 def create_noise(num_zs):
