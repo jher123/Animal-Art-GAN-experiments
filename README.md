@@ -8,8 +8,8 @@ The goal of this project is to experiment with creating artsy looking images of 
 ## Getting Started
 
 ## Prerequisites
-The models are meant to be run on CUDA enabled GPU. I have run mine on 
-
+The models are meant to be run on CUDA enabled GPU.
+The main requirements are
 
 ## Acknowledgements
 - The code for the WGAN was inspired by fast.ai course implementation https://github.com/fastai/fastai/blob/master/courses/dl2/wgan.ipynb

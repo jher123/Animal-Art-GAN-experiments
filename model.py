@@ -6,11 +6,6 @@ import torchvision.utils as vutils
 from torch.autograd import Variable as V
 
 
-def create_noise(num_zs):
-    # good practice: sample from Gaussian and not uniform distribution
-    return V(torch.zeros(num_zs, num_zs, 1, 1).normal_(0, 1))
-
-
 class DeconvBlock(nn.Module):
     def __init__(self, n_in, n_out, ks, stride, pad, bn=True):
         super().__init__()

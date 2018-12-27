@@ -164,7 +164,7 @@ def train(
         if epoch%gen_img_freq == 0:
             netD.eval()
             netG.eval()
-            fixed_noise = create_noise(64)
+            fixed_noise = V(torch.zeros(64, nz, 1, 1).normal_(0, 1))
             fake = netG(fixed_noise).data.cpu()
             vutils.save_image(
                 fake,'%s/fake_image_epoch_%03d.jpg' % (gen_img_path, epoch), normalize=True
