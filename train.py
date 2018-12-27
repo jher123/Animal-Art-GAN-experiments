@@ -26,9 +26,8 @@ def train(
     checkpoint_path,
     gen_img_freq=5,
     checkpoint_freq=500,
-    # resume_training=False,
-    debug=True,
-    resume_path=None
+    resume_path=None,
+    debug=True
 ):
     """ A method to train Wasserstein GAN given dataset loader object and options.
 
@@ -45,14 +44,9 @@ def train(
     checkpoint_path: str, path to where model checkpoints will be saved
     gen_img_freq: int, every how many epochs to save image samples, default 5
     checkpoint_freq: 5, every how many epochs to save model checkpoints, default 500
-    resume_from_checkpoint_path: str, path to the checkpoint file from which to resume training
-    # resume_training: Boolean, whether to resume training from checkpoint. Default False.
-    #                 If True, training will be resume from the checkpoint specified by
-    #                 resume_from_checkpoint_path. This file will contain the number of
-    #                 the epoch when it was saved.
+    resume_path: str, path to the checkpoint file from which to resume training, default None
     debug: Boolean, whether to save a dict with debug info:
             lossD, lossG, D(fake batch) and D(real batch). Default True.
-    resume_path
 
     Returns
     -------
@@ -189,7 +183,7 @@ def main():
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bs", default=64, type=int, help='batch size')
+    parser.add_argument('--bs', default=64, type=int, help='batch size')
     parser.add_argument('--im_size', default=64, type=int, help='image size')
     parser.add_argument('--num_epochs', default=2000, required=True, type=int, help='the number of training epochs')
     parser.add_argument('--nz', default=100, type=int, help='the size of the random input vector')
@@ -197,13 +191,13 @@ def main():
     parser.add_argument('--ndf', default=64, type=int, help='determines the depth of the feature maps carried through the discriminator/critic')
     parser.add_argument('--ngf', default=64, type=int, help='determines the depth of the feature maps carried through the generator')
     parser.add_argument('--lr', default=0.0001, type=float, help='learning rate')
-    parser.add_argument('--version_name', required=True, help='what to name the subfolder with info from this run as')
+    parser.add_argument('--version_name', required=True, type=str, help='what to name the subfolder with info from this run as')
     parser.add_argument('--img_folder_name', type=str, required=True, help='path to folder where to save generated images')
-    parser.add_argument('--gen_img_freq', default=5, help='every how many epochs to save generated images')
-    parser.add_argument('--checkpoint_freq', default=500, help='every how many epochs to save checkpoints')
+    parser.add_argument('--gen_img_freq', default=5, type=int, help='every how many epochs to save generated images')
+    parser.add_argument('--checkpoint_freq', default=500, type=int, help='every how many epochs to save checkpoints')
     parser.add_argument('--resume_from_checkpoint_path', help='checkpoint file from which to resume training')
-    parser.add_argument('--debug', default=True, help='whether to save debug info whilst training')
-    parser.add_argument('--resume', default=False, help='whether to resume training from checkpoint')
+    parser.add_argument('--debug', default=True, type=bool, help='whether to save debug info whilst training')
+    parser.add_argument('--resume', default=False, type=bool, help='whether to resume training from checkpoint')
     parser.add_argument('--epoch_num', type=int, help='Number of epoch from which to restart training, must be a multiple of 500.')
 
     opt = parser.parse_args()
@@ -214,8 +208,8 @@ def main():
     IM_SIZE = opt.im_size # default: 64x64
     NZ = opt.nz # default: 100
     NUM_EPOCHS = opt.num_epochs # default: 2000
-    KS = opt.ks # default: 4x4 Jeremy, 5x5 Siraj
-    LR = opt.lr # 1e-4 Jeremy, 2e-4 # Siraj
+    KS = opt.ks # default: 4x4
+    LR = opt.lr # default: 1e-4
     NDF = opt.ndf # default: 64
     NGF = opt.ngf # default: 64
     version = opt.version_name
@@ -228,7 +222,6 @@ def main():
     os.makedirs(TMP_PATH, exist_ok=True)
     GEN_PATH = os.path.join(os.path.join(PATH, 'generated_imgs'), version)
     os.makedirs(GEN_PATH, exist_ok=True)
-
 
     # PREPARING THE DATA
     # dataset
@@ -271,8 +264,8 @@ def main():
         checkpoint_path=TMP_PATH,
         gen_img_freq=opt.gen_img_freq,
         checkpoint_freq=opt.checkpoint_freq,
-        debug=opt.debug,
-        resume_path=checkpoint
+        resume_path=checkpoint,
+        debug=opt.debug
     )
 
     print('Time elapsed in min: {}'.format((time.time() - start_time)/60.))
