@@ -39,20 +39,20 @@ def train(
     optimiserD: object, Discriminator optimiser
     optimiserG: object, Generator optimiser
     nz: int, the length of the random numbers vector
-    num_epochs: int, the total number of epochs
-    gen_img_path: str, path to the folder where generated images will be saved
-    checkpoint_path: str, path to where model checkpoints will be saved
+    num_epochs: int, the total number of training epochs
+    gen_img_path: str, the path to the folder where generated images will be saved
+    checkpoint_path: str, the path to the folder where model checkpoints will be saved
     gen_img_freq: int, every how many epochs to save image samples, default 5
     checkpoint_freq: 5, every how many epochs to save model checkpoints, default 500
     resume_path: str, path to the checkpoint file from which to resume training, default None
-    debug: Boolean, whether to save a dict with debug info:
+    debug: Boolean, whether to save a dictionary with debug info:
             lossD, lossG, D(fake batch) and D(real batch). Default True.
 
     Returns
     -------
     netG: Trained Generator object
     netD: Trained Discriminator object
-    debug_info: a dictionary with debug information as described above.
+    debug_info: A dictionary with debug information as described above.
             If debug was set to False, this will be an empty dictionary.
     """
 
@@ -83,17 +83,15 @@ def train(
     gen_iters = 0
     for epoch in range(num_epochs + 1)[(last_epoch + 1):]:
         print('Running epoch {}/{} \n'.format(epoch, num_epochs + 1))
-        # SET THE MODELS TO TRAINING MODE
         netD.train()
         netG.train()
         image_batch = next(iter(dataloader))
         i = 0
-        n = len(image_batch[0]) # LENGTH OF THE BATCH
+        n = len(image_batch[0])
         while i < n:
             # for every 1 iteration of G, have 5 or more later iters of D
             d_iters = 100 if (gen_iters % 500 == 0) else 5
             j = 0
-
             # STEP 1: TRAIN THE DISCRIMINATOR
             set_trainable(netD, True)
             set_trainable(netG, False)
@@ -106,11 +104,11 @@ def train(
                 # REAL IMAGE BATCH
                 real = V(image_batch[0])
                 real = real.cuda()
-                real_result = netD(real) # the avg output across batch of the D for all the real batch
+                real_result = netD(real) # the avg Discriminator output across the real batch
                 # FAKE IMAGE BATCH
                 noise = V(torch.zeros(real.size(0), nz, 1, 1).normal_(0, 1))
                 fake = netG(noise)
-                fake_result = netD(V(fake.data)) # the avg D output for all the fake batch
+                fake_result = netD(V(fake.data)) # the avg Discriminator output for all the fake batch
                 # ZERO THE GRADIENTS FOR D AND THEN CALCULATE LOSS + BACKPROP
                 netD.zero_grad()
                 lossD = real_result-fake_result
@@ -123,9 +121,7 @@ def train(
             set_trainable(netG, True)
             # ZERO THE GRADIENTS FOR G AND THEN CALCULATE LOSS + BACKPROP + UPDATE STEP
             netG.zero_grad()
-            noise1 = V(torch.zeros(real.size(0), nz, 1, 1).normal_(0, 1)) # TODO
-            # opt TODO: add Gaussian noise to every layer of generator: rain_noise = np.random.uniform(-1.0, 1.0, size=[batch_size, random_dim]).astype(np.float32)
-            # USE THE FAKE FROM ABOVE?
+            noise1 = V(torch.zeros(real.size(0), nz, 1, 1).normal_(0, 1))
             lossG = netD(netG(noise1)).mean(0).view(1)
             lossG.backward()
             # G OPTIMISER UPDATE STEP
@@ -146,7 +142,7 @@ def train(
         print(f'\n Loss_D (real - fake result) {lossDnp}; Loss_G {lossGnp}; '
               f'D_real {realnp}; Loss_D_fake {fakenp} \n')
 
-        # SAVE CHECKPOINTS EVERY CHECKPOINT_FREQ EPOCHS
+        # SAVE CHECKPOINTS
         if epoch%checkpoint_freq == 0:
             print('Saving checkpoint at epoch {}'.format(epoch))
             torch.save({
@@ -160,7 +156,7 @@ def train(
                 'debug_info': debug_info
             },
                 f'{checkpoint_path}/epoch_{str(epoch)}.pth.tar')
-        # SAVE IMAGES EVERY IMG_FREQ EPOCHS
+        # SAVE IMAGES
         if epoch%gen_img_freq == 0:
             netD.eval()
             netG.eval()
@@ -184,21 +180,21 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--bs', default=64, type=int, help='batch size')
-    parser.add_argument('--im_size', default=64, type=int, help='image size')
+    parser.add_argument('--im_size', default=64, type=int, help='image size - has to be 64 or 128')
     parser.add_argument('--num_epochs', default=2000, required=True, type=int, help='the number of training epochs')
     parser.add_argument('--nz', default=100, type=int, help='the size of the random input vector')
     parser.add_argument('--ks', default=4, type=int, help='kernel size')
     parser.add_argument('--ndf', default=64, type=int, help='determines the depth of the feature maps carried through the discriminator/critic')
     parser.add_argument('--ngf', default=64, type=int, help='determines the depth of the feature maps carried through the generator')
     parser.add_argument('--lr', default=0.0001, type=float, help='learning rate')
-    parser.add_argument('--version_name', required=True, type=str, help='what to name the subfolder with info from this run as')
-    parser.add_argument('--img_folder_name', type=str, required=True, help='path to folder where to save generated images')
-    parser.add_argument('--gen_img_freq', default=5, type=int, help='every how many epochs to save generated images')
-    parser.add_argument('--checkpoint_freq', default=500, type=int, help='every how many epochs to save checkpoints')
+    parser.add_argument('--version_name', required=True, type=str, help='what to name the subfolder with data related to this run as')
+    parser.add_argument('--img_folder_name', type=str, required=True, help='path to the folder for generated images')
+    parser.add_argument('--gen_img_freq', default=5, type=int, help='frequency of saving generated images in epochs')
+    parser.add_argument('--checkpoint_freq', default=500, type=int, help='frequency of saving checkpoints in epochs')
     parser.add_argument('--resume_from_checkpoint_path', help='checkpoint file from which to resume training')
-    parser.add_argument('--debug', default=True, type=bool, help='whether to save debug info whilst training')
-    parser.add_argument('--resume', default=False, type=bool, help='whether to resume training from checkpoint')
-    parser.add_argument('--epoch_num', type=int, help='Number of epoch from which to restart training, must be a multiple of 500.')
+    parser.add_argument('--debug', default=True, type=bool, help='specifies whether to save debug info whilst training')
+    parser.add_argument('--resume', default=False, type=bool, help='specifies whether to resume training from checkpoint')
+    parser.add_argument('--resume_epoch_num', type=int, help='the number of epoch from which to resume training')
 
     opt = parser.parse_args()
     print('Parsed arguments: \n {}'.format(opt))
@@ -245,7 +241,7 @@ def main():
 
     if opt.resume:
         if opt.resume_from_checkpoint_path is None:
-            checkpoint = f'{TMP_PATH}/epoch_{str(opt.epoch_num)}.pth.tar'
+            checkpoint = f'{TMP_PATH}/epoch_{str(opt.resume_epoch_num)}.pth.tar'
         else:
             checkpoint = opt.resume_from_checkpoint_path
     else:
