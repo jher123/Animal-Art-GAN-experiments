@@ -8,7 +8,7 @@ from torch.autograd import Variable as V
 
 def create_noise(num_zs):
     # good practice: sample from Gaussian and not uniform distribution
-    return V(torch.zeros(num_zs, NZ, 1, 1).normal_(0, 1))
+    return V(torch.zeros(num_zs, num_zs, 1, 1).normal_(0, 1))
 
 
 class DeconvBlock(nn.Module):
