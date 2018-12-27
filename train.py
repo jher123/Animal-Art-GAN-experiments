@@ -251,7 +251,7 @@ def main():
     optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
 
     if opt.resume_from_checkpoint_path is None:
-        checkpoint = f'{TMP_PATH}/epoch_{str(epoch_num)}.pth.tar'
+        checkpoint = f'{TMP_PATH}/epoch_{str(opt.epoch_num)}.pth.tar'
     else:
         checkpoint = opt.resume_from_checkpoint_path
 
