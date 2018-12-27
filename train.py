@@ -250,7 +250,7 @@ def main():
     optimiserD = optim.RMSprop(netD.parameters(), lr = LR)
     optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
 
-    if resume_training:
+    if opt.resume:
         if opt.resume_from_checkpoint_path is None:
             checkpoint = f'{TMP_PATH}/epoch_{str(opt.epoch_num)}.pth.tar'
         else:
