@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-from torch.autograd import Variable as V
 
 
 class DeconvBlock(nn.Module):
