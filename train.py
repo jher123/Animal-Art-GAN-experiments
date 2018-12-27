@@ -26,9 +26,9 @@ def train(
     checkpoint_path,
     gen_img_freq=5,
     checkpoint_freq=500,
-    resume_training=False,
+    # resume_training=False,
     debug=True,
-    resume_from_checkpoint_path=None
+    resume_path=None
 ):
     """ A method to train Wasserstein GAN given dataset loader object and options.
 
@@ -46,13 +46,13 @@ def train(
     gen_img_freq: int, every how many epochs to save image samples, default 5
     checkpoint_freq: 5, every how many epochs to save model checkpoints, default 500
     resume_from_checkpoint_path: str, path to the checkpoint file from which to resume training
-    resume_training: Boolean, whether to resume training from checkpoint. Default False.
-                    If True, training will be resume from the checkpoint specified by
-                    resume_from_checkpoint_path. This file will contain the number of
-                    the epoch when it was saved.
+    # resume_training: Boolean, whether to resume training from checkpoint. Default False.
+    #                 If True, training will be resume from the checkpoint specified by
+    #                 resume_from_checkpoint_path. This file will contain the number of
+    #                 the epoch when it was saved.
     debug: Boolean, whether to save a dict with debug info:
             lossD, lossG, D(fake batch) and D(real batch). Default True.
-    resume_from_checkpoint_path
+    resume_path
 
     Returns
     -------
@@ -69,10 +69,8 @@ def train(
     debug_info['real_res'] = []
     debug_info['fake_res'] = []
 
-    if resume_training:
-        print(resume_training)
-        if os.path.exists(resume_from_checkpoint_path):
-            checkpoint = torch.load(resume_from_checkpoint_path)
+    if resume_path is not None:
+        checkpoint = torch.load(resume_from_checkpoint_path)
         netG.load_state_dict(checkpoint['netG_state_dict'])
         netD.load_state_dict(checkpoint['netD_state_dict'])
         optimiserG.load_state_dict(checkpoint['optimiserG_state_dict'])
@@ -252,10 +250,13 @@ def main():
     optimiserD = optim.RMSprop(netD.parameters(), lr = LR)
     optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
 
-    if opt.resume_from_checkpoint_path is None:
-        checkpoint = f'{TMP_PATH}/epoch_{str(opt.epoch_num)}.pth.tar'
+    if resume_training:
+        if opt.resume_from_checkpoint_path is None:
+            checkpoint = f'{TMP_PATH}/epoch_{str(opt.epoch_num)}.pth.tar'
+        else:
+            checkpoint = opt.resume_from_checkpoint_path
     else:
-        checkpoint = opt.resume_from_checkpoint_path
+        checkpoint = None
 
     # TRAINING
     train(
@@ -270,9 +271,8 @@ def main():
         checkpoint_path=TMP_PATH,
         gen_img_freq=opt.gen_img_freq,
         checkpoint_freq=opt.checkpoint_freq,
-        resume_training=opt.resume,
         debug=opt.debug,
-        resume_from_checkpoint_path=checkpoint
+        resume_path=checkpoint
     )
 
     print('Time elapsed in min: {}'.format((time.time() - start_time)/60.))
