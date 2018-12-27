@@ -1,5 +1,5 @@
 # The definition of the basic WCGAN which generates 64x64 or 128x128 images
-
+import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
