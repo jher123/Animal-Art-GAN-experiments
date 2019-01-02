@@ -229,7 +229,7 @@ def main():
     )
     dataset = dset.ImageFolder(root=INPUT_PATH, transform=tfms)
 
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4) # each batch is batch_size x num_channels x h x w
 
     # DEFINE THE MODELS
     netG = Generator(IM_SIZE, KS, NZ, NGF).cuda()

@@ -35,9 +35,7 @@ def conv_block(n_in, n_out, ks, stride, pad=None, bn=True):
     return res
 
 class Discriminator(nn.Module):
-    # TODO - MODIFY FOR 128X128
     def __init__(self, im_size, ks, ndf, nc=3, ngpu=1):
-        # Jeremy uses ks=4
         super().__init__()
         self.ngpu = ngpu
         self.im_size = im_size
@@ -58,14 +56,13 @@ class Discriminator(nn.Module):
             # input: nc x 128 x 128
             conv_block(nc, ndf, ks, 2, 1, bn=False),
             # conv2: ndf x 64 x 64
-            conv_block(ndf, ndf*2, ks, 2, 1),
+            conv_block(ndf, ndf*2, ks, 2, 1), # 64, 12
             # conv3: ndf*2 x 32 x 32
-            conv_block(ndf*2, ndf*4, ks, 2, 1),
+            conv_block(ndf*2, ndf*4, ks, 2, 1), # 128, 256
             # conv4: ndf*4 x 16 x 16
-            conv_block(ndf*4, ndf*8, ks, 2, 1),
+            conv_block(ndf*4, ndf*8, ks, 2, 1), # 256,  512
             # conv5: ndf*8 x 8 x 8
-            conv_block(ndf*8, ndf*16, ks, 2, 1),
-            # ndf*16 x 4 x 4 - Siraj doesn't seem to have this layer
+            conv_block(ndf*8, ndf*16, ks, 2, 1), # 512, 1024
             # the last cov has 1 channel and a grid size of no more than 4x4. So we are going to spit out 4x4x1 tensor
             nn.Conv2d(ndf*16, 1, ks, 1, 0, bias=False)
         )
@@ -79,7 +76,6 @@ class Discriminator(nn.Module):
 
 
 class Generator(nn.Module):
-    # Jeremy uses ks=4, Siraj  ks =5
     def __init__(self, im_size, ks, nz, ngf, nc=3, ngpu=1):
         super().__init__()
         self.ngpu = ngpu
@@ -94,8 +90,7 @@ class Generator(nn.Module):
             # ngf*2 x 16 x 16
             DeconvBlock(ngf*2, ngf, ks, 2, 1),
             # ngf x 32 x 32
-            DeconvBlock(ngf, nc, ks, 2, 1),
-            # optional extra layers to be added as above
+            nn.ConvTranspose2d(ngf, nc, ks, 2, 1, bias=False),
             nn.Tanh()
             # output: nc x 64 x 64
         )
@@ -111,8 +106,7 @@ class Generator(nn.Module):
             # ngf*2 x 32 x 32
             DeconvBlock(ngf*2, ngf, ks, 2, 1),
             # ngf x 64 x 64 - optional for 128 x128 ims
-            DeconvBlock(ngf, nc, ks, 2, 1),
-            # optional extra layers to be added as above
+            nn.ConvTranspose2d(ngf, nc, ks, 2, 1, bias=False),
             nn.Tanh()
             # output: nc x 128 x 128
         )
