@@ -53,7 +53,7 @@ dataset = dset.ImageFolder(
             root=root_path,
             transforms=transforms
 )
-
+print(len(dataset)) # the number of images
 # 3. Create the dataloader: we need this to do batching, mutlithreading and shuffling
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                          shuffle=True, num_workers=workers)
