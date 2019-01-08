@@ -1,4 +1,4 @@
-# The definition of the basic WCGAN which generates 64x64 or 128x128 images
+# The definition of the basic Wasserstein GAN which generates 64x64 or 128x128 images
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
@@ -69,10 +69,9 @@ class Discriminator(nn.Module):
 
     def forward(self, input):
         if self.im_size == 64:
-            return self.main64(input).mean(0).view(1) # for WGAN
+            return self.main64(input).mean(0).view(1)
         else:
-            return self.main128(input).mean(0).view(1) # for WGAN
-#         return nn.Sigmoid(self.main(input)) # for DCGAN
+            return self.main128(input).mean(0).view(1)
 
 
 class Generator(nn.Module):

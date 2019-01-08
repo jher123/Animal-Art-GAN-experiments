@@ -10,7 +10,7 @@ import torchvision.utils as vutils
 import torch.backends.cudnn as cudnn
 import torchvision.datasets as dset
 
-from model.WGAN import *
+from model.SAGAN import *
 from utils.utils import *
 
 
@@ -27,9 +27,10 @@ def train(
     gen_img_freq=5,
     checkpoint_freq=500,
     resume_path=None,
-    debug=True
+    debug=True,
+    d_iters=1
 ):
-    """ A method to train a Wasserstein GAN given a dataset loader object and options.
+    """ A method to train a Self-Attention GAN given a dataset loader object and options.
 
     Parameters
     ----------
@@ -80,54 +81,40 @@ def train(
         netG.apply(weights_init)
         netD.apply(weights_init)
 
-    gen_iters = 0
-
     for epoch in range(num_epochs + 1)[(last_epoch + 1):]:
         print('Running epoch {}/{} \n'.format(epoch, num_epochs + 1))
         netD.train()
         netG.train()
         image_batch = next(iter(dataloader))
-        i = 0
-        num_batches = int(len(dataloader.dataset)/len(image_batch[0]))
-        while i < num_batches:
-            # for every 1 iteration of G, have multiple iterations of D
-            d_iters = 100 if (gen_iters % 500 == 0) else 5
-            j = 0
-            # STEP 1: TRAIN THE DISCRIMINATOR
+        num_batches = num_batches = int(len(dataloader.dataset)/len(image_batch[0]))
+        for i in range(num_batches):
             set_trainable(netD, True)
             set_trainable(netG, False)
-            while (j < d_iters) and (i < num_batches):
-                j += 1
-                i += 1
-                # CLIP  WEIGHTS
-                for p in netD.parameters():
-                    p.data.clamp_(-0.01, 0.01)
-                # REAL IMAGE BATCH
-                real_batch = V(image_batch[0])
-                real_batch = real.cuda()
-                real_result = netD(real_batch) # the avg Discriminator output across the real batch
-                # FAKE IMAGE BATCH
-                noise = V(torch.zeros(real_batch.size(0), nz, 1, 1).normal_(0, 1))
-                fake_batch = netG(noise)
-                fake_result = netD(V(fake_batch.data)) # the avg Discriminator output for all the fake batch
-                # ZERO THE GRADIENTS FOR D AND THEN CALCULATE LOSS + BACKPROP
-                netD.zero_grad()
-                lossD = real_result-fake_result
-                lossD.backward()
-                # D OPTIMISER UPDATE STEP
-                optimiserD.step()
-
+            # STEP 1: TRAIN THE DISCRIMINATOR
+            # REAL IMAGE BATCH
+            real_batch = V(image_batch[0])
+            real_batch = real.cuda()
+            real_result = netD(real_batch)
+            # FAKE IMAGE BATCH
+            noise = V(torch.zeros(real_batch.size(0), nz, 1, 1).normal_(0, 1))
+            fake_batch = netG(noise)
+            fake_result = netD(V(fake_batch.data))
+            # D LOSS
+            netD.zero_grad()
+            lossD = torch.nn.ReLU()(1. - real_result).mean() + torch.nn.ReLU()(1. + fake_result).mean()
+            lossD.backward()
+            # D OPTIMISER UPDATE STEP
+            optimiserD.step()
             # STEP 2: TRAIN THE GENERATOR
             set_trainable(netD, False)
             set_trainable(netG, True)
-            # ZERO THE GRADIENTS FOR G AND THEN CALCULATE LOSS + BACKPROP
+            # G LOSS
             netG.zero_grad()
             noise1 = V(torch.zeros(real_batch.size(0), nz, 1, 1).normal_(0, 1))
-            lossG = netD(netG(noise1)).mean(0).view(1)
+            lossG = - netD(netG(noise1)).mean(0).view(1)
             lossG.backward()
             # G OPTIMISER UPDATE STEP
             optimiserG.step()
-            gen_iters += 1
 
         lossDnp = lossD.data.cpu().numpy()
         lossGnp = lossG.data.cpu().numpy()
@@ -185,7 +172,6 @@ def main():
     parser.add_argument('--ks', default=4, type=int, help='kernel size')
     parser.add_argument('--ndf', default=64, type=int, help='determines the depth of the feature maps carried through the discriminator/critic')
     parser.add_argument('--ngf', default=64, type=int, help='determines the depth of the feature maps carried through the generator')
-    parser.add_argument('--lr', default=0.0001, type=float, help='learning rate')
     parser.add_argument('--version_name', required=True, type=str, help='what to name the subfolder with data related to this run as')
     parser.add_argument('--img_folder_name', type=str, required=True, help='path to the folder for generated images')
     parser.add_argument('--gen_img_freq', default=5, type=int, help='frequency of saving generated images in epochs')
@@ -199,12 +185,13 @@ def main():
     print('Parsed arguments: \n {}'.format(opt))
 
     # HYPERPARAMS
+    LR_G = 1e-4
+    LR_D = 4e-4
     BATCH_SIZE = opt.bs # default: 64
     IM_SIZE = opt.im_size # default: 64x64
     NZ = opt.nz # default: 100
     NUM_EPOCHS = opt.num_epochs # default: 2000
     KS = opt.ks # default: 4x4
-    LR = opt.lr # default: 1e-4
     NDF = opt.ndf # default: 64
     NGF = opt.ngf # default: 64
     version = opt.version_name
@@ -236,8 +223,8 @@ def main():
     netD = Discriminator(IM_SIZE, KS, NDF).cuda()
 
     # DEFINE THE OPTIMISERS
-    optimiserD = optim.RMSprop(netD.parameters(), lr = LR)
-    optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
+    optimiserD = optim.Adam(netD.parameters(), lr = LR_D, betas=[0., 0.9])
+    optimiserG = optim.Adam(netG.parameters(), lr = LR_G, betas=[0., 0.9])
 
     if opt.resume:
         if opt.resume_from_checkpoint_path is None:

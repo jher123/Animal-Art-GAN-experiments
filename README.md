@@ -16,6 +16,7 @@ To download images from Flickr/Unsplash run one of the scraper scripts providing
 `python3 flickr_scraper.py --keyword jellyfish --num_images 3000`
 `python3 unsplash_scraper.py --keyword jellyfish`
 
+Place the images in `input_data`
 The training scripts train the network either from scratch or resuming from a checkpoint file.
 It saves images every `gen_img_freq` epochs (default 5) and saves model and optimiser checkpoints as well as debug info if desired every
 `checkpoint_freq` epochs. The full list of arguments is in `train.py` script. Example training a WGAN from scratch:
