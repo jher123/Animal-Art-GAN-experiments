@@ -15,11 +15,11 @@ The goal of this project is to compare visual results achieved from generating i
 ## Examples
 WGAN Lions
 
-<p align="center"><img width="100%" src="images/lions_epoch_5000.jpg" /></p>
+<p align="center"><img width="50%" src="images/lions_epoch_5000.jpg" /></p>
 
 Swapping lion images for jellyfish images for 10 epochs during training
 
-<p align="center"><img width="100%" src="images/lionsxjellyfish_epoch_4510.jpg" /></p>
+<p align="center"><img width="50%" src="images/lionsxjellyfish_epoch_4510.jpg" /></p>
 
 SAGAN
 <coming soon>
