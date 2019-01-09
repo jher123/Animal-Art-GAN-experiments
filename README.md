@@ -8,12 +8,13 @@ In the past few years, GANs have been successful at various image generation tas
 stability and convergence issues and sensitivity to the choice of hyperparameters. Different types of GANs have been proposed to tackle these issues.
 Wasserstein GAN (WGAN) is a popular approach which uses a loss function based on the Wasserstein distance. Such loss metric correlates with the generator’s convergence and image quality, therefore we have a better idea of when to stop training and benefit from improved stability of the optimization process.
 
-The more recent Self-Attention GAN targets another problem which is the difficulty to efficiently model global, long-range dependencies within images. Even though GANs are really good at learning and generating images with complex textures (e.g. landscapes), they struggle with capturing complex geometric or structural patterns that occur consistently in some classes (e.g generating realistic looking animal with a clearly defined head, legs etc). This is due to the convolutional architecture where information is processed in a local neighbourhood and representations learnt in a hierarchical fashion.
+The more recent Self-Attention GAN targets another problem which is the difficulty to efficiently model global, long-range dependencies within images. Even though GANs are really good at learning and generating images with complex textures (e.g. landscapes), they struggle with capturing complex geometric or structural patterns that occur consistently in some classes (e.g generating realistic looking animal with a clearly defined head, legs etc). This is due to the convolutional architecture where information is processed in a local neighbourhood and representations learnt in a hierarchical fashion. SAGAN incorporates Self-Attention layers into the Discriminator and Generator architectures in order to help the networks learn long-range dependencies. In addition to that SAGAN authors propose applying spectral normalisation technique to both of the networks' weights as well as two-timescale update rule (different learning rates for the Generator and the Discriminator) to stabilise training.
 
-The goal of this project is to compare visual results achieved from generating images with different types of GANs and experiment with creating artsy looking images of animals using GANs by swapping images for different animals for a few epochs during training.
+The goal of this project is to compare visual results achieved from generating images with different types of GANs and experiment with creating artsy looking images of animals using GANs by swapping images for different style images for a few epochs during training.
 
 ## Examples
-WGAN Lions
+**WGAN**
+Lions (64x64)
 
 <p align="center"><img width="50%" src="images/lions_epoch_5000.jpg" /></p>
 
@@ -21,8 +22,9 @@ Swapping lion images for jellyfish images for 10 epochs during training
 
 <p align="center"><img width="50%" src="images/lionsxjellyfish_epoch_4510.jpg" /></p>
 
-SAGAN
-<coming soon>
+**SAGAN**
+
+coming soon
 
 ## Prerequisites
 The models are meant to be run on CUDA enabled GPU.
@@ -44,9 +46,9 @@ They saves images every `gen_img_freq` epochs (default 5) and save model and opt
 `python3 train_WGAN.py --bs 128 --im_size 128 --num_epochs 3500 --version_name lions128 --img_folder_name lions --checkpoint_freq 400`
 
 Example training a WGAN from checkpoint saved at the 2000th epoch:
+
 `python3 train_WGAN.py --bs 128 --im_size 128 --num_epochs 3500 --version_name  the lions128 --img_folder_name lions --checkpoint_freq 400 --resume True --resume_epoch_num 2000`
 
 ## Acknowledgements
-- The code for the WGAN was inspired by fast.ai course implementation https://github.com/fastai/fastai/blob/master/courses/dl2/wgan.ipynb
 - The flickr scraper is a modified version of https://gist.github.com/yunjey/14e3a069ad2aa3adf72dee93a53117d6
 - The idea of swapping images during training to achieve artistic effects inspired by Robbie Barrat's work https://github.com/robbiebarrat/art-DCGAN
