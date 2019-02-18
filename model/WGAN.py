@@ -29,7 +29,6 @@ def conv_block(n_in, n_out, ks, stride, pad=None, bn=True):
     else:
         res = nn.Sequential(
             nn.Conv2d(n_in, n_out, kernel_size=ks, bias=False, stride=stride, padding=pad),
-            nn.BatchNorm2d(n_out),
             nn.LeakyReLU(negative_slope=0.2, inplace=True)
         )
     return res

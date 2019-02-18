@@ -236,7 +236,7 @@ def main():
     netD = Discriminator(IM_SIZE, KS, NDF).cuda()
 
     # DEFINE THE OPTIMISERS
-    optimiserD = optim.RMSprop(netD.parameters(), lr = LR)
+    optimiserD = optim.RMSprop(netD.parameters(), lr = LR) #  it uses the squared gradients to scale the learning rate
     optimiserG = optim.RMSprop(netG.parameters(), lr = LR)
 
     if opt.resume:
